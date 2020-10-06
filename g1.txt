@@ -1,0 +1,79 @@
+Function format_serial() As String
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    Dim strSN As String
+    Dim first_number As LongLong
+    Dim last_number As LongLong
+    Dim strSql As String
+    Dim counter As Integer
+
+    
+    strSN = ""
+    
+    strSql = "SELECT Val(serial) as sn FROM tblSerial WHERE val(serial) <= 11012309201300 ORDER BY val(Serial)"
+    
+    Set db = CurrentDb()
+    Set rs = db.OpenRecordset(strSql)
+    
+    If rs.EOF And rs.BOF Then
+        MsgBox "No serial number collected"
+        format_serial = ""
+        Exit Function
+    End If
+    
+    rs.MoveFirst
+    counter = 0
+    
+    Do
+        If counter = 0 Then
+            
+            first_number = rs!sn
+            last_number = rs!sn
+            counter = 1
+            
+        ElseIf (rs!sn > last_number + 1) Then
+            
+            If counter = 1 Then
+                strSN = strSN & Trim(Str(first_number)) & ", "
+                first_number = rs!sn
+                last_number = rs!sn
+                counter = 1
+            ElseIf counter = 2 Then
+                
+                strSN = strSN & Trim(Str(first_number)) & ", " & Trim(Str(last_number)) & ", "
+                first_number = rs!sn
+                last_number = rs!sn
+                counter = 1
+            Else
+                strSN = strSN & Trim(Str(first_number)) & "-" & Trim(Str(last_number)) & ", "
+                first_number = rs!sn
+                last_number = rs!sn
+                counter = 1
+            End If
+            
+        Else
+            last_number = rs!sn
+            counter = counter + 1
+        End If
+        
+        rs.MoveNext
+    Loop Until rs.EOF
+    
+    If rs.EOF Then
+        If last_number = first_number Then
+            strSN = strSN & Trim(Str(first_number))
+        ElseIf last_number = first_number + 1 Then
+            strSN = strSN & Trim(Str(first_number)) & ", " & Trim(Str(last_number))
+        ElseIf last_number > first_number + 1 Then
+            strSN = strSN & Trim(Str(first_number)) & "-" & Trim(Str(last_number))
+        End If
+    End If
+    
+    Debug.Print strSN
+    format_serial = strSN
+    rs.Close
+    Set rs = Nothing
+    
+    db.Close
+    Set db = Nothing
+End Function
