@@ -1,4 +1,7 @@
 Function format_serial() As String
+    'Function used to shorten serialNumber output as a string
+    'where "continuous" SerialNumbers are presented as "first_in_group-last_in_group"
+    
     Dim db As DAO.Database
     Dim rs As DAO.Recordset
     Dim strSN As String
