@@ -1,4 +1,6 @@
 Sub autoEmail()
+    'Procedure used to send out email to customer with CoC files attached.
+    'Emails were grouped and sent by shipped date
     Dim oApp As Object
     Dim oEmail As Object
     Dim rs1 As DAO.Recordset
