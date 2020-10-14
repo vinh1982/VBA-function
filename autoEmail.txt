@@ -88,7 +88,7 @@ Sub autoEmail()
 
             Set oApp = Nothing
             Set oEmail = Nothing
-
+            'Update tblCoCEmailed by set all the sent CoCs to wasEmailed = True
             strSql = "Update tblCoCEmailed set wasEmailed = -1 WHERE wasEmailed = 0 and shipdate = #" & dtDate & "#"
             DoCmd.SetWarnings False
             DoCmd.RunSQL strSql
@@ -97,7 +97,7 @@ Sub autoEmail()
         rs1.MoveNext
     Wend
 
-    'Update tblCoCEmailed by set all the sent CoCs to wasEmailed = True
+    'Mark that this function was ran once a day, for today
     DoCmd.SetWarnings False
     DoCmd.RunSQL "INSERT INTO tblTodayEmailCheck(WasAutoEmailed, BusinessDate) Values(-1, #" & Date & "#)"
     DoCmd.SetWarnings True
