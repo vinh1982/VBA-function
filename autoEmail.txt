@@ -1,0 +1,105 @@
+Sub autoEmail()
+    Dim oApp As Object
+    Dim oEmail As Object
+    Dim rs1 As DAO.Recordset
+    Dim rs2 As DAO.Recordset
+    Dim toEmail As String
+    Dim subject As String
+    Dim body As String
+    Dim strSql As String
+    Dim file As String
+    Dim dtDate As Date
+
+    'check to see if autoEmail funcion was run successfully today. if it did, stop the function
+    If DLookup("[WasAutoEmailed]", "tblTodayEmailCheck", "[BusinessDate]= #" & Date & "#") <> -1 Then
+        Exit Sub
+    End If
+
+    strSql = "SELECT DISTINCT shipDate FROM tblCoCEmailed WHERE WasEmailed=0 and Shipdate <#" & Date & "#"
+
+    Set rs1 = CurrentDb.OpenRecordset(strSql)
+
+    If rs1.RecordCount < 1 Then
+        MsgBox "No record found"
+        Exit Sub
+    End If
+    rs1.MoveLast
+    rs1.MoveFirst
+    While Not rs1.EOF
+
+        dtDate = rs1!shipDate
+
+        strSql = "SELECT * FROM tblCoCEmailed WHERE WasEmailed=0 and Shipdate =#" & dtDate & "#"
+
+        Set rs2 = CurrentDb.OpenRecordset(strSql)
+        rs2.MoveLast
+        rs2.MoveFirst
+        If rs2.RecordCount >= 1 Then
+
+            Set oApp = CreateObject("Outlook.Application")
+            Set oEmail = oApp.CreateItem(0)
+
+            rs2.MoveFirst
+            subject = ""
+            While Not rs2.EOF
+
+                If subject = "" Then
+                    subject = "PO: " & Split(rs2!PoLine, "-")(0) & ", Line: " & Split(rs2!PoLine, "-")(1)
+                    body = "Part Number: " & rs2!PartNumber & vbCrLf
+                    body = body & "Rev: " & rs2!Rev & vbCrLf
+                    body = body & "PO-Line: " & rs2!PoLine & vbCrLf
+                    body = body & "Sale Order: " & rs2!SaleOrder & vbCrLf
+                    body = body & "Quantity: " & Str(rs2!Quantity) & vbCrLf & vbCrLf
+                    file = rs2!filePath
+                    oEmail.attachments.Add file
+                Else
+                    subject = subject & "; PO: " & Split(rs2!PoLine, "-")(0) & ", Line: " & Split(rs2!PoLine, "-")(1)
+                    body = body & "Part Number: " & rs2!PartNumber & vbCrLf
+                    body = body & "Rev: " & rs2!Rev & vbCrLf
+                    body = body & "PO-Line: " & rs2!PoLine & vbCrLf
+                    body = body & "Sale Order: " & rs2!SaleOrder & vbCrLf
+                    body = body & "Quantity: " & Str(rs2!Quantity) & vbCrLf & vbCrLf
+                    file = rs2!filePath
+                    oEmail.attachments.Add file
+                End If
+
+                rs2.MoveNext
+
+            Wend
+
+            If Environ("UserName") = "Vinh.Nguyen" Then
+                toEmail = "NguyenVinh1982n@gmail.com"
+            Else
+                Exit Sub
+            End If
+
+            oEmail.to = toEmail
+            oEmail.subject = subject
+            oEmail.body = body
+
+            With oEmail
+                If Not IsNull(.to) And Not IsNull(.subject) And Not IsNull(.body) Then
+                    .send
+                    'MsgBox "Email sent!"
+                Else
+                    MsgBox "Please fill out the required fields."
+                End If
+            End With
+
+            Set oApp = Nothing
+            Set oEmail = Nothing
+
+            strSql = "Update tblCoCEmailed set wasEmailed = -1 WHERE wasEmailed = 0 and shipdate = #" & dtDate & "#"
+            DoCmd.SetWarnings False
+            DoCmd.RunSQL strSql
+            DoCmd.SetWarnings True
+        End If
+        rs1.MoveNext
+    Wend
+
+    'Update tblCoCEmailed by set all the sent CoCs to wasEmailed = True
+    DoCmd.SetWarnings False
+    DoCmd.RunSQL "INSERT INTO tblTodayEmailCheck(WasAutoEmailed, BusinessDate) Values(-1, #" & Date & "#)"
+    DoCmd.SetWarnings True
+
+End Sub
